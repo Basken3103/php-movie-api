@@ -49,6 +49,6 @@ $stmt = $pdo->prepare("
 $stmt->execute([$movieid]);
 $movie["genres"] = $stmt->fetchAll();
 
-json_response($movie);
+echo json_response($movie);
 
 

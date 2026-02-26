@@ -10,6 +10,12 @@ $pdo = db();
 
 $movieId = isset($_GET["movieid"]) ? (int)$_GET["movieid"] : null;
 
+//TODO Lav GET metoden i en if statement
+
+//TODO Lav POST metoden bagefter  
+
+//TODO Lav DELETE metoden til allersidst
+
 if (!$movieId) {
     //List  
     $stmt = $pdo->query("SELECT * FROM movies");
@@ -26,3 +32,9 @@ $movie = $stmt->fetch();
 if (!$movie) {
   json_response(["error" => "Movie not found"], 404);
 }
+
+if ($_SERVER["REQUEST_METHOD"] === "DELETE") { 
+  http_response_code(405);
+  echo "METHOD NOT ALLOWED";
+  exit();
+ }

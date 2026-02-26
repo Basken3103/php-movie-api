@@ -38,9 +38,6 @@ $stmt = $pdo->prepare("
 $stmt->execute([$movieId]);
 $movie["actors"] = $stmt->fetchAll();
 
-// spørg om director - getting confused
-
-
 // genres
 $stmt = $pdo->prepare("
   SELECT g.genreid, g.genrename

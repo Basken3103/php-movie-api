@@ -11,24 +11,17 @@ $pdo = db();
 
 $movieId = isset($_GET["movieid"]) ? (int)$_GET["movieid"] : null;
 
-//TODO Lav GET metoden i en if statement
-
-//TODO Lav POST metoden bagefter  
-
-//TODO Lav DELETE metoden til allersidst
-
-
 // GET metoden
-// Hvis ingen movieid er givet, så returner listen af alle film
-if ($_GET) 
-   if ($movieId === null) {
-    $stmt = $pdo->query("SELECT * FROM movies");
-    $movies = $stmt->fetchAll();
-    json_response($movies);
+// Hvis ingen movieid er givet, så returneres listen af alle film
+if ($movieId === null) {
+  $stmt = $pdo->query("SELECT * FROM movies");
+  $movies = $stmt->fetchAll();
+  echo json_response($movies);
+  exit;
 }
 
 // Hvis movieid findes → hent én film
-$stmt = $pdo->prepare("SELECT * FROM movies WHERE id = ?");
+$stmt = $pdo->prepare("SELECT * FROM movies WHERE id 1= ?");
 $stmt->execute([$movieId]);
 $movies = $stmt->fetch();
 
@@ -36,7 +29,7 @@ if (!$movies) {
   json_response(["error" => "Movie not found"], 404);
 }
 
-echo json_response($movies);
+json_response($movies);
 
 // POST metoden
 if ($_POST) {
@@ -53,12 +46,32 @@ if ($title === "") {
 $stmt = $pdo->prepare("INSERT INTO movies (title, movielength, release_year) VALUES (?, ?, ?)");
 $stmt->execute([$title, $movielength, $release_year]);
 
-json_response(["ok" => true, "MovieId" => (int)$pdo->lastInsertId()], 201);
+echo json_response(["ok" => true, "Movieid" => (int)$pdo->lastInsertId()], 201);
 }
 
 // DELETE metoden
-if ($_SERVER["REQUEST_METHOD"] === "DELETE") { 
-  http_response_code(405);
-  echo "METHOD NOT ALLOWED";
-  exit();
+try {
+  
+    $pdo->beginTransaction();
+
+    // Slet først selve filmen, så du kan give 404 uden at røre join-tabeller
+    $stmt = $pdo->prepare("DELETE FROM movies WHERE Movieid = ?");
+    $stmt->execute([$movieId]);
+
+    if ($stmt->rowCount() === 0) {
+        $pdo->rollBack();
+        json_response(["error" => "Movie not found"], 404);
+    }
+
+    // Slet relationstabeller
+    $pdo->prepare("DELETE FROM movieactor WHERE movieid = ?")->execute([$movieId]);
+    $pdo->prepare("DELETE FROM moviedirector WHERE movieid = ?")->execute([$movieId]);
+    $pdo->prepare("DELETE FROM moviegenres WHERE movieid = ?")->execute([$movieId]);
+
+    $pdo->commit();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    json_response(["error" => "Failed to delete movie: " . $e->getMessage()], 500);
 }
+
+echo json_response(["ok" => true]);
